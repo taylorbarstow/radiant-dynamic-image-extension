@@ -12,6 +12,12 @@ module DynamicImage
   tag "image" do |tag|
     text = tag.expand # Get the text contained in the tag
     config = tag.attr # Get tag attributes
+    config['style'] ||= ''
+    unless config['style'].include?('background-color')
+      config['style'].strip!
+      config['style'] += '; ' unless config['style'].empty? || config['style'][-1, 1] == ';'
+      config['style'] += "background-color: #{config['background']};"
+    end
     filename = get_image(text, config) # Get the image filename, attributes are deleted once used
     tag.attr['alt'] ||= text
     attributes = tag.attr.inject([]) { |a, (k, v)| a << %{#{k}="#{v}"} }.join(' ').strip # Remaining attributes are passed through to HTML
