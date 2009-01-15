@@ -4,9 +4,9 @@ class DynamicImageExtension < Radiant::Extension
   url ""
   
   def activate
-     Page.class_eval {
+    Page.class_eval do
       include DynamicImage
-    }
+    end
   end
   
   def deactivate
