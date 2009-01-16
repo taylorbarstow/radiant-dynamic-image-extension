@@ -22,16 +22,20 @@ module DynamicImage
 
     def render_dynamic_image(text, attributes)
       attributes.symbolize_keys!
+      background_color = attributes[:background] || Radiant::Config['image.background'] || 'transparent'
       attributes[:style] ||= ''
       unless attributes[:style].include?('background-color')
         attributes[:style].strip!
         attributes[:style] += '; ' unless attributes[:style].empty? || attributes[:style][-1, 1] == ';'
-        attributes[:style] += "background-color: #{attributes[:background] || Radiant::Config['image.background'] || 'transparent'};"
+        attributes[:style] += "background-color: #{background_color};"
       end
       attributes[:alt] ||= text
       filename = get_image(text, attributes)
+      width = attributes.delete(:width)
       attributes = attributes.inject([]) { |a, (k, v)| a << %Q{ #{k}="#{v}"} }.join(' ').strip
-      %Q{<img src="/dynamic_images/#{filename}" #{attributes unless attributes.empty?} />}
+      html = %Q{<img src="/dynamic_images/#{filename}" #{attributes unless attributes.empty?} />}
+      html = %Q{<div style="width: #{width} !important; background-color: #{background_color} !important; text-align: center !important; overflow: hidden !important;">#{html}</div>} unless width.nil?
+      html
     end
     
     def get_image(text, config)
