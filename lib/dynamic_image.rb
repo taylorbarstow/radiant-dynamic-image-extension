@@ -72,21 +72,19 @@ module DynamicImage
         metrics = draw.get_type_metrics(tmp, text)
 
         # Generate the image of the appropriate size
-        canvas.new_image(metrics.width, metrics.height) {
+        canvas.new_image(metrics.width, metrics.height) do
           self.background_color = config[:background]
-        }
+        end
         # Iterate over each of the words and generate the appropriate annotation
         # Alternate colors for each word
         
-        x_pos = 0;
-        count = 0;
+        x_pos, count = 0, 0
         words.each do |word|
           draw.fill = config[:color][(count % config[:color].length)]
           draw.annotate(canvas, 0, 0, x_pos, metrics.ascent, word)
-          
           metrics = draw.get_type_metrics(tmp, word)
-          x_pos = x_pos + metrics.width + config[:spacing]
-          count = count + 1;
+          x_pos += metrics.width + config[:spacing]
+          count += 1;
         end
         
         # Write the file
@@ -94,12 +92,9 @@ module DynamicImage
       end
       
       # Delete configuration parameters
-      config.delete(:font)
-      config.delete(:size)
-      config.delete(:cache)
-      config.delete(:background)
-      config.delete(:spacing)
-      config.delete(:color)
+      [:font, :size, :cache, :background, :spacing, :color].each do |param|
+        config.delete(param)
+      end
       
       image_name
     end
