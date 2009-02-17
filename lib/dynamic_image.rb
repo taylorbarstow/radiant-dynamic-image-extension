@@ -24,9 +24,17 @@ module DynamicImage
   end
   
   def getImage(text, config)
-    config['font'] ||= Radiant::Config['image.font']
-    config['size'] ||= Radiant::Config['image.size']
-    config['size'] = config['size'].to_f
+    unless(config['font'])
+      config['font'] = Radiant::Config['image.font']
+    else
+       tmp1 = Radiant::Config['image.font.dir']
+       tmp2 = config['font']
+       config['font'] = tmp1 + tmp2
+    end
+
+    config['size'] ||= Radiant::Config['image.size'].to_f
+
+
     config['cache'] ||= true
     config['background'] ||= Radiant::Config['image.background']
     config['spacing'] ||= Radiant::Config['image.spacing']
