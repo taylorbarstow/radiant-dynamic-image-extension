@@ -1,145 +1,158 @@
-require "RMagick"
+require 'RMagick'
 require 'digest/md5'
+
 module DynamicImage
+
   include Radiant::Taggable
-
-    desc %{
-    *Usage*:
-
-    <pre><code><r:image>...</r:image></code></pre>
-    }
-  tag "image" do |tag|
-    unless(tag.attr['menu'])
-      text = tag.expand # Get the text contained in the tag
-      url = '#'
-    else
-      text = tag.render('title')
-      url = tag.render('url')
-    end
-    config = tag.attr # Get tag attributes
-    filename = getImage(text, config) # Get the image filename, attributes are deleted once used
-#    if(not tag.attr['alt'])
-#      tag.attr['alt'] = text
-#    end
-
-    # remove the unbidden tags for the output
-    tag.attr.delete('hovercolor') if (tag.attr['hovercolor'])
-    tag.attr.delete('menu') if (tag.attr['menu'])
-
-    attributes = tag.attr.inject([]){ |a,(k,v)| a << %{#{k}="#{v}"} }.join(" ").strip # Remaining attributes are passed through to HTML
-    
-    %{<a href="#{url}" class="dynamic_image_extension" style="display:block;width:200px;height:100%;background-image:url(/dynamic_images/#{filename});"><span style="visibility:hidden">#{text}</span></a>}
-    #<img src="/dynamic_images/#{filename}" #{attributes + " " unless attributes.empty?} border="0" />
-  end
-
+  
   def cache?
     false
   end
+  
+  desc %{
+    *Usage*:
 
-  def getImage(text, config)
-    unless(config['font'])
-      config['font'] = Radiant::Config['image.font']
+    <pre><code><r:image>...</r:image></code></pre>
+  }
+
+  tag 'image' do |tag|
+    unless(tag.attr['menu'])
+      DynamicImage.render_dynamic_image(tag.expand, tag.attr.dup, '#')
     else
-       tmp1 = Radiant::Config['image.font.dir']
-       tmp2 = config['font']
-       config['font'] = tmp1 + tmp2
+      DynamicImage.render_dynamic_image(tag.render('title'), tag.attr.dup, tag.render('url'))
     end
-    config['size'] ||= Radiant::Config['image.size']
-    config['size'] = config['size'].to_f
-    config['cache'] ||= true
-    config['background'] ||= Radiant::Config['image.background']
-    config['spacing'] ||= Radiant::Config['image.spacing']
-    config['spacing'] = config['spacing'].to_f
-    if(config['color'])
-      config['color'] = config['color'].split(',')
-    else
-      config['color'] = Radiant::Config['image.color'].split(',')
+  end
+  
+  class << self
+
+    def render_dynamic_image(text, attributes, url)
+      attributes.symbolize_keys!
+      background_color = attributes[:background] || Radiant::Config['image.background'] || 'transparent'
+      attributes[:style] ||= ''
+      unless attributes[:style].include?('background-color')
+        attributes[:style].strip!
+        attributes[:style] += '; ' unless attributes[:style].empty? || attributes[:style][-1, 1] == ';'
+        attributes[:style] += "background-color: #{background_color};"
+      end
+      hover = '_hover' if (attributes[:hovercolor])
+      attributes[:alt] ||= text
+      height = attributes[:size].to_f
+      filename = get_image(text, attributes)
+      img_size = ImageSize.new(Radiant::Config['image.cache_path']+filename)
+      height = img_size.get_height
+      # remove the unbidden tags for the output
+      attributes.delete(:hovercolor) if (attributes[:hovercolor])
+      attributes.delete(:menu) if (attributes[:menu])
+      attributes.delete(:width)
+      attributes = attributes.inject([]) { |a, (k, v)| a << %Q{ #{k}="#{v}"} }.join(' ').strip
+      css = 'cursor: default;' if( url == '#')
+      html = %Q{<a href="#{url}" class="dynamic_image_extension#{hover}" style="display:block;width:#{img_size.get_width}px;height:#{height}px;background-image:url(/dynamic_images/#{filename});background-repeat:no-repeat;#{css}">
+                  <span style="visibility:hidden;display:block;width:100%;height:100%;">#{text}</span>
+                </a>}
+      html
     end
-    cache_path =  Radiant::Config['image.cache_path']
-
-    text = cleanText(text)
-    words = text.split(/[\s]/)
-    image_name = getHashFile(text, config)
-    image_path = File.join(cache_path, image_name)
-
-    # Generate the image if not using cache
-    if(not config['cache'] or not File.exists?(image_path))
-      # Generate the image list
-      canvas = Magick::ImageList.new
-
-      # Generate the draw object with the font parameters
-      draw = Magick::Draw.new
-      draw.stroke = 'transparent'
-      draw.font = config['font']
-      draw.pointsize = config['size']
-
-      # Generate a temporary image for use with metrics and find metrics
-      tmp = Magick::Image.new(100,100)
-      metrics = draw.get_type_metrics(tmp, text)
-
-      unless(config['hovercolor'])
-        height = metrics.height
+    
+    def get_image(text, config)
+      text.downcase! if config[:downcase]
+      text.upcase! if config[:upcase]
+      unless(config[:font])
+        config[:font] = Radiant::Config['image.font']
       else
-        height = metrics.height*2
+         tmp1 = Radiant::Config['image.font.dir']
+         tmp2 = config[:font]
+         config[:font] = tmp1 + tmp2
       end
-      # Generate the image of the appropriate size
-      canvas.new_image(metrics.width,height){
-        self.background_color = config['background']
-      }
-      # Iterate over each of the words and generate the appropriate annotation
-      # Alternate colors for each word
+      config[:size] ||= Radiant::Config['image.size']
+      config[:size] = config[:size].to_f
+      config[:cache] ||= true
+      config[:background] ||= Radiant::Config['image.background']
+      config[:spacing] ||= Radiant::Config['image.spacing']
+      config[:spacing] = config[:spacing].to_f
+      config[:color] = (config[:color] || Radiant::Config['image.color']).split(',')
+      cache_path = Radiant::Config['image.cache_path']
+   
+      text = clean_text(text)
+      words = text.split(/[\s]/)
+      image_name = get_hash_file(text, config)
+      image_path = File.join(cache_path, image_name)
+      
+      # Generate the image if not using cache
+      if not config[:cache] or not File.exists?(image_path)
+        # Generate the image list
+        canvas = Magick::ImageList.new
+        
+        # Generate the draw object with the font parameters
+        draw = Magick::Draw.new
+        draw.stroke = 'transparent'
+        draw.font = config[:font]
+        draw.pointsize = config[:size]
+        
+        # Generate a temporary image for use with metrics and find metrics
+        tmp = Magick::Image.new(100, 100)
+        metrics = draw.get_type_metrics(tmp, text)
 
-      x_pos = 0;
-      count = 0;
-      words.each do |word|
-        draw.fill = config['color'][(count % config['color'].length)]
-        draw.annotate(canvas,0,0,x_pos,metrics.ascent,word)
-        draw.annotate(canvas,0,0,x_pos,metrics.ascent+height/2,word) {
-            self.fill = config['hovercolor']
-        } if (config['hovercolor'])
-
-        metrics = draw.get_type_metrics(tmp, word)
-        x_pos = x_pos + metrics.width + config['spacing']
-        count = count + 1;
+        # Generate the image of the appropriate size
+        height = metrics.height
+        height = 2 * metrics.ascent if (config[:hovercolor])
+        canvas.new_image(metrics.width, height) do
+          self.background_color = config[:background]
+        end 
+        # Iterate over each of the words and generate the appropriate annotation
+        # Alternate colors for each word
+        
+        x_pos, count = 0, 0
+        words.each do |word|
+          draw.fill = config[:color][(count % config[:color].length)]
+          draw.annotate(canvas, 0, 0, x_pos, metrics.ascent, word)
+          draw.annotate(canvas,0,0,x_pos,metrics.ascent*2,word) do
+            self.fill = config[:hovercolor]
+          end if (config[:hovercolor])
+          metrics = draw.get_type_metrics(tmp, word)
+          x_pos += metrics.width + config[:spacing]
+          count += 1;
+        end
+        
+        # Write the file
+        canvas.write(image_path)
       end
-
-      # Write the file
-      canvas.write(image_path)
+      
+      # Delete configuration parameters
+      [:font, :size, :cache, :background, :spacing, :color, :hovercolor, :menu].each do |param|
+        config.delete(param)
+      end
+      
+      image_name
+    end
+    
+    def get_hash_file(text, config)
+      hash = Digest::MD5.hexdigest(
+        text + 
+        config[:font].to_s + 
+        config[:size].to_s + 
+        config[:background].to_s + 
+        config[:spacing].to_s + 
+        config[:color].join +
+        config[:hovercolor].to_s +
+        config[:menu].to_s
+      ) + ".png"
     end
 
-    # Delete configuration parameters
-    config.delete('font')
-    config.delete('size')
-    config.delete('cache')
-    config.delete('background')
-    config.delete('spacing')
-    config.delete('color')
-    config.delete('hovercolor')
+    def clean_text(text)
+      javascript_to_html(text)
+    end
+    
+    # TODO write replace
+    # convert embedded, javascript unicode characters into embedded HTML
+    #  entities. (e.g. '%u2018' => '&#8216;'). returns the converted string.
+    def javascript_to_html(text)
+      new_text = text
+      #matches = text.scan(/%u([0-9A-F]{4})/i)
+      #matches.each do |match|
+      #  text = text.replace()
+      #end
+      new_text
+    end
 
-    return image_name
-  end
-
-  def getHashFile(text, config)
-    hash = Digest::MD5.hexdigest(
-      text+config['font'].to_s+config['size'].to_s+config['background'].to_s+
-        config['spacing'].to_s+config['color'].join+config['hovercolor'].to_s+config['menu'].to_s)
-    return hash + ".png"
-  end
-
-  def cleanText(text)
-    text = javascriptToHtml(text)
-  end
-
-  # TODO write replace
-  # convert embedded, javascript unicode characters into embedded HTML
-  #  entities. (e.g. '%u2018' => '&#8216;'). returns the converted string.
-  def javascriptToHtml(text)
-    newText = text
-    #matches = text.scan(/%u([0-9A-F]{4})/i)
-    #matches.each do |match|
-    #  text = text.replace()
-    #end
-    newText
   end
 
 end
