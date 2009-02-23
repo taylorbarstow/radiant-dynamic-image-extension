@@ -1,5 +1,7 @@
 require 'RMagick'
 require 'digest/md5'
+require 'stringio'
+require 'image_size'
 
 module DynamicImage
 
@@ -36,17 +38,23 @@ module DynamicImage
       end
       hover = '_hover' if (attributes[:hovercolor])
       attributes[:alt] ||= text
-      height = attributes[:size].to_f
       filename = get_image(text, attributes)
-      img_size = ImageSize.new(Radiant::Config['image.cache_path']+filename)
-      height = img_size.get_height
+      file = RAILS_ROOT+'/'+Radiant::Config['image.cache_path']+'/'+filename
+      img_size = nil
+      File.open(file, 'r') do |fh|
+        img_size = ImageSize.new(fh)
+      end
+      width = attributes[:width]
+      width = img_size.get_width.to_f unless (width)
+      height = img_size.get_height.to_f
+      height = height/2 if(hover)
       # remove the unbidden tags for the output
       attributes.delete(:hovercolor) if (attributes[:hovercolor])
       attributes.delete(:menu) if (attributes[:menu])
       attributes.delete(:width)
       attributes = attributes.inject([]) { |a, (k, v)| a << %Q{ #{k}="#{v}"} }.join(' ').strip
-      css = 'cursor: default;' if( url == '#')
-      html = %Q{<a href="#{url}" class="dynamic_image_extension#{hover}" style="display:block;width:#{img_size.get_width}px;height:#{height}px;background-image:url(/dynamic_images/#{filename});background-repeat:no-repeat;#{css}">
+      css_cursor = 'cursor: default' if( url == '#')
+      html = %Q{<a alt="#{text}" href="#{url}" class="dynamic_image_extension#{hover}" style="display:block;width:#{width}px;height:#{height}px;background-image:url(/dynamic_images/#{filename});background-repeat:no-repeat;#{css_cursor};">
                   <span style="visibility:hidden;display:block;width:100%;height:100%;">#{text}</span>
                 </a>}
       html
@@ -133,7 +141,8 @@ module DynamicImage
         config[:spacing].to_s + 
         config[:color].join +
         config[:hovercolor].to_s +
-        config[:menu].to_s
+        config[:menu].to_s +
+        config[:style].to_s
       ) + ".png"
     end
 
