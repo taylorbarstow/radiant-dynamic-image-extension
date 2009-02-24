@@ -54,8 +54,8 @@ module DynamicImage
       attributes.delete(:width)
       attributes = attributes.inject([]) { |a, (k, v)| a << %Q{ #{k}="#{v}"} }.join(' ').strip
       css_cursor = 'cursor: default' if( url == '#')
-      html = %Q{<a alt="#{text}" href="#{url}" class="dynamic_image_extension#{hover}" style="display:block;width:#{width}px;height:#{height}px;background-image:url(/dynamic_images/#{filename});background-repeat:no-repeat;#{css_cursor};">
-                  <span style="visibility:hidden;display:block;width:100%;height:100%;">#{text}</span>
+      html = %Q{<a alt="#{text}" href="#{url}" class="dynamic_image_extension#{hover}" style="width:#{width}px;height:#{height}px;background-image:url(/dynamic_images/#{filename});#{css_cursor};">
+                  <span>#{text}</span>
                 </a>}
       html
     end
