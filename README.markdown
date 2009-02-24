@@ -22,15 +22,23 @@ Setup
 2. Place a font file in a known directory on your server.
 3. Create a folder called "dynamic_images" in public and chmod 755 it
 4. Configure default text settings in environment.rb.  Here are some sample settings
-4.1 'Radiant::Config['image.font'] = "#{RAILS_ROOT}/CenturyGothic-Bold.ttf" # default font path'
-4.2 'Radiant::Config['image.font.dir'] = "#{RAILS_ROOT}/public/" # font directory`
-4.3 'Radiant::Config['image.size'] = 28.0 # default font size`
-4.4 'Radiant::Config['image.spacing'] = 5 # Spacing between words in pixels`
-4.5 'Radiant::Config['image.color'] = '#8FC757,#0093DB' # Colors, if multiple colors are provided each word will be a different color`
-4.6 'Radiant::Config['image.cache_path'] = 'public/dynamic_images' # Path to cache the images, don't change this now`
-4.7 'Radiant::Config['image.background'] = '#0D0D0D' # Background color of the image or 'transparent' for transparent background (may have problems in IE)`
+
+`Radiant::Config['image.font'] = "#{RAILS_ROOT}/CenturyGothic-Bold.ttf" # default font path'
+
+`Radiant::Config['image.font.dir'] = "#{RAILS_ROOT}/public/" # font directory`
+
+`Radiant::Config['image.size'] = 28.0 # default font size`
+
+`Radiant::Config['image.spacing'] = 5 # Spacing between words in pixels`
+
+`Radiant::Config['image.color'] = '#8FC757,#0093DB' # Colors, if multiple colors are provided each word will be a different color`
+
+`Radiant::Config['image.cache_path'] = 'public/dynamic_images' # Path to cache the images, don't change this now`
+
+`Radiant::Config['image.background'] = '#0D0D0D' # Background color of the image or 'transparent' for transparent background (may have problems in IE)`
+
 5. make a rake update
-6. insert `<link href="/stylesheets/extensions/dynamic_image/dynamic_image.css" type="text/css" rel="stylesheet">`
+6. insert `<link href="/stylesheets/extensions/dynamic_image/dynamic_image.css" type="text/css" rel="stylesheet">` into your layout
 
 
 Usage
