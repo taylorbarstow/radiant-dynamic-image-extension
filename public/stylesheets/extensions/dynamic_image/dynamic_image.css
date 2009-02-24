@@ -1,0 +1,8 @@
+/* 
+    Document   : dynamic_image
+    Created on : 17.02.2009, 11:46:11
+    Author     : Roman Simecek
+    Description: the CSS for the dynamic image extension
+*/
+
+a.dynamic_image_extension_hover:hover { background-position: left bottom; }
