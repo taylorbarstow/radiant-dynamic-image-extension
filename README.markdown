@@ -23,7 +23,7 @@ Setup
 3. Create a folder called "dynamic_images" in public and chmod 755 it
 4. Configure default text settings in environment.rb.  Here are some sample settings
 
-`Radiant::Config['image.font'] = "#{RAILS_ROOT}/CenturyGothic-Bold.ttf" # default font path'
+`Radiant::Config['image.font'] = "#{RAILS_ROOT}/CenturyGothic-Bold.ttf" # default font path`
 
 `Radiant::Config['image.font.dir'] = "#{RAILS_ROOT}/public/" # font directory`
 
