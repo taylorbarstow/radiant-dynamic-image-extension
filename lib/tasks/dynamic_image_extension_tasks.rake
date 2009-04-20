@@ -20,7 +20,7 @@ namespace :radiant do
           path = file.sub(DynamicImageExtension.root, '')
           directory = File.dirname(path)
           mkdir_p RAILS_ROOT + directory
-          cp file, RAILS_ROOT + path
+          copy_entry(file, RAILS_ROOT + path)
         end
       end  
     end
