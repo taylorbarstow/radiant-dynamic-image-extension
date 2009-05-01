@@ -72,3 +72,7 @@ License
 
 This extension is released under the MIT license, see the [LICENSE](master/LICENSE) for more
 information.
+
+TODO
+-------
+* Optimize the image generating process, with some fonts the text is croped

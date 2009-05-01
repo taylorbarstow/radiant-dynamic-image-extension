@@ -103,7 +103,9 @@ module DynamicImage
         # Generate the image of the appropriate size
         height = metrics.height
         height = 2 * metrics.ascent if (config[:hovercolor])
-        canvas.new_image(metrics.width, height) do
+        # Workaround so that every font works
+        width = metrics.width + metrics.max_advance
+        canvas.new_image(width, height) do
           self.background_color = config[:background]
         end 
         # Iterate over each of the words and generate the appropriate annotation
