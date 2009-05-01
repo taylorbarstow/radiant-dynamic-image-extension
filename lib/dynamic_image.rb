@@ -37,7 +37,7 @@ module DynamicImage
         attributes[:style] += "background-color: #{background_color};"
       end
       hover = '_hover' if (attributes[:hovercolor])
-      attributes['image.color'] = attributes['color'] if attributes['color']      
+      attributes['image.color'] = attributes['color'] if attributes['color']     
       attributes[:alt] ||= text
       filename = get_image(text, attributes)
       file = RAILS_ROOT+'/'+Radiant::Config['image.cache_path']+'/'+filename
