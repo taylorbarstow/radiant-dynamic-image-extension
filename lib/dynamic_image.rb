@@ -39,8 +39,10 @@ module DynamicImage
       hover = '_hover' if (attributes[:hovercolor])
       attributes['image.color'] = attributes['color'] if attributes['color']     
       attributes[:alt] ||= text
+      img_directory = RAILS_ROOT+'/'+Radiant::Config['image.cache_path']+'/'
+      check_directory(img_directory)
       filename = get_image(text, attributes)
-      file = RAILS_ROOT+'/'+Radiant::Config['image.cache_path']+'/'+filename
+      file = img_directory+filename
       img_size = nil
       File.open(file, 'r') do |fh|
         img_size = ImageSize.new(fh)
@@ -59,6 +61,12 @@ module DynamicImage
                   <span>#{text}</span>
                 </a>}
       html
+    end
+
+    def check_directory(path)
+      unless File.exists?(path) && File.directory?(path)
+        Dir.mkdir(path)
+      end
     end
     
     def get_image(text, config)
