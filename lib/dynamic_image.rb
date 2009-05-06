@@ -48,13 +48,15 @@ module DynamicImage
       end
       width = attributes[:width]
       width = img_size.get_width.to_f unless (width)
-      height = img_size.get_height.to_f
-      height = height/2 if(hover)
+      height = img_size.get_height.to_f unless attributes[:height]
+      height = height/2 if(hover) unless attributes[:height]
+      height = attributes[:height] if attributes[:height]
       directory = check_multisite("dynamic_images")
       # remove the unbidden tags for the output
       attributes.delete(:hovercolor) if (attributes[:hovercolor])
       attributes.delete(:menu) if (attributes[:menu])
       attributes.delete(:width)
+      attributes.delete(:height)
       attributes = attributes.inject([]) { |a, (k, v)| a << %Q{ #{k}="#{v}"} }.join(' ').strip
       css_cursor = 'cursor: default' if( url == '#')
       html = %Q{<a alt="#{text}" href="#{url}" class="dynamic_image_extension#{hover}" style="width:#{width}px;height:#{height}px;background-image:url(/#{directory}/#{filename});#{css_cursor};">
