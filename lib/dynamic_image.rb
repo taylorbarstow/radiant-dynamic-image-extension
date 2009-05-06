@@ -99,10 +99,20 @@ module DynamicImage
       config[:spacing] ||= Radiant::Config['image.spacing']
       config[:spacing] = config[:spacing].to_f
       config[:color] = (config[:color] || Radiant::Config['image.color']).split(',')
+      row = config[:row]
       cache_path = path
 
       text = clean_text(text)
-      words = text.split(/[\s]/)
+      words = text.split(/[\s]/) unless row
+      if row
+        row = row.to_i
+        firstrow = config[:firstrow]
+        firstrow = firstrow.to_i
+        words = Array.new
+        words.push(text[0,firstrow])
+        words.push(text[firstrow,text.length].rstrip)
+      end
+      
       image_name = get_hash_file(text, config)
       image_path = File.join(cache_path, image_name)
 
@@ -124,6 +134,7 @@ module DynamicImage
         # Generate the image of the appropriate size
         height = metrics.height
         height = 2 * metrics.ascent if (config[:hovercolor])
+        height = height * (row+1) if row
         # Workaround so that every font works
         width = metrics.width + metrics.max_advance
         canvas.new_image(width, height) do
@@ -135,14 +146,30 @@ module DynamicImage
         x_pos, count = 0, 0
         words.each do |word|
           draw.fill = config[:color][(count % config[:color].length)]
-          draw.annotate(canvas, 0, 0, x_pos, metrics.ascent, word)
+          # TODO remove the problem with umlauts
+          draw.annotate(canvas, 0, 0, x_pos, metrics.ascent,word)
           draw.annotate(canvas,0,0,x_pos,metrics.ascent*2,word) do
             self.fill = config[:hovercolor]
           end if (config[:hovercolor])
           metrics = draw.get_type_metrics(tmp, word)
           x_pos += metrics.width + config[:spacing]
           count += 1;
-        end
+        end unless row
+
+        img_height = metrics.ascent+(-1*metrics.descent) if row
+        row_count = 1 if row
+        words.each do |word|
+          draw.fill = config[:color][(count % config[:color].length)]
+          draw.annotate(canvas,0,0,0,(img_height*row_count), word.rstrip)
+          # TODO remove the constant 16
+          draw.annotate(canvas,0,0,0,(img_height*row_count)+(img_height*row)+16,word.rstrip) do
+            self.fill = config[:hovercolor]
+          end if (config[:hovercolor])
+          metrics = draw.get_type_metrics(tmp, word)
+          # x_pos += metrics.width + config[:spacing]
+          count += 1;
+          row_count += 1; 
+        end if row
 
         # Write the file
         canvas.write(image_path)
