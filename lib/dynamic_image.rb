@@ -40,7 +40,8 @@ module DynamicImage
       attributes['image.color'] = attributes['color'] if attributes['color']
       attributes[:alt] ||= text
       img_directory = get_image_directory
-      filename = get_image(text, attributes, img_directory)
+      filename = get_image(text, attributes, img_directory) unless attributes[:fade]
+      filename = get_animated_image(text, attributes, img_directory) if attributes[:fade]
       file = img_directory+filename
       img_size = nil
       File.open(file, 'r') do |fh|
@@ -100,27 +101,22 @@ module DynamicImage
       config[:spacing] = config[:spacing].to_f
       config[:color] = (config[:color] || Radiant::Config['image.color']).split(',')
       cache_path = path
-
       text = clean_text(text)
       words = text.split(/[\s]/)
-      image_name = get_hash_file(text, config)
+      image_name = get_hash_file(text, config)+".png"
       image_path = File.join(cache_path, image_name)
-
       # Generate the image if not using cache
       if not config[:cache] or not File.exists?(image_path)
         # Generate the image list
         canvas = Magick::ImageList.new
-
         # Generate the draw object with the font parameters
         draw = Magick::Draw.new
         draw.stroke = 'transparent'
         draw.font = config[:font]
         draw.pointsize = config[:size]
-
         # Generate a temporary image for use with metrics and find metrics
         tmp = Magick::Image.new(100, 100)
         metrics = draw.get_type_metrics(tmp, text)
-
         # Generate the image of the appropriate size
         height = metrics.height
         height = 2 * metrics.ascent if (config[:hovercolor])
@@ -131,7 +127,6 @@ module DynamicImage
         end
         # Iterate over each of the words and generate the appropriate annotation
         # Alternate colors for each word
-
         x_pos, count = 0, 0
         words.each do |word|
           draw.fill = config[:color][(count % config[:color].length)]
@@ -143,16 +138,13 @@ module DynamicImage
           x_pos += metrics.width + config[:spacing]
           count += 1;
         end
-
         # Write the file
         canvas.write(image_path)
       end
-
       # Delete configuration parameters
       [:font, :size, :cache, :background, :spacing, :color, :hovercolor, :menu].each do |param|
         config.delete(param)
       end
-
       image_name
     end
 
@@ -167,7 +159,69 @@ module DynamicImage
         config[:hovercolor].to_s +
         config[:menu].to_s +
         config[:style].to_s
-      ) + ".png"
+      )
+    end
+
+    def get_animated_image(text, config, path)
+      text.downcase! if config[:downcase]
+      text.upcase! if config[:upcase]
+      unless(config[:font])
+        config[:font] = Radiant::Config['image.font']
+      else
+         tmp1 = Radiant::Config['image.font.dir']
+         tmp2 = config[:font]
+         config[:font] = tmp1 + tmp2
+      end
+      config[:size] ||= Radiant::Config['image.size']
+      config[:size] = config[:size].to_f
+      config[:cache] ||= true
+      config[:background] ||= Radiant::Config['image.background']
+      config[:spacing] ||= Radiant::Config['image.spacing']
+      config[:spacing] = config[:spacing].to_f
+      config[:color] = (config[:color] || Radiant::Config['image.color']).split(',')
+      cache_path = path
+      text = clean_text(text)
+      words = text.split(/[\s]/)
+      image_name = get_hash_file(text, config)+".gif"
+      image_path = File.join(cache_path, image_name)
+      # Generate the image if not using cache
+      if not config[:cache] or not File.exists?(image_path)
+        tmp = Magick::Image.new(100, 100)
+        metrics = draw.get_type_metrics(tmp, text)
+        anim = Magick::ImageList.new
+        ex = Magick::Image.new(metrics.width, metrics.height)
+        text_img = Magick::Draw.new
+        text_img.gravity = Magick::CenterGravity
+        text_img.pointsize = 36
+        text_img.font_weight = Magick::BoldWeight
+        text_img.font_style = Magick::ItalicStyle
+        text_img.stroke = 'transparent'
+        text_img.annotate(ex, 0,0,0,0, text) do
+            self.fill = 'transparent'
+        end
+        anim << ex.copy
+        j = 10
+        for i in (1..9)
+          text_img.annotate(ex, 0,0,0,0, text) do
+              self.fill = 'gray'+j.to_s+'0'
+              j=j-1
+          end
+          anim << ex.copy
+        end
+        text_img.annotate(ex, 0,0,0,0, text) do
+            self.fill = 'black'
+        end
+        anim << ex.copy
+        anim.delay = 20
+        # anim.cur_image.delay = 300
+        anim.iterations = 0
+        anim.write(image_path)
+        # Delete configuration parameters
+        [:font, :size, :cache, :background, :spacing, :color, :hovercolor, :menu].each do |param|
+          config.delete(param)
+        end
+      end
+      image_name
     end
 
     def clean_text(text)
