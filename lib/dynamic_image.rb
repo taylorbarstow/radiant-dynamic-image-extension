@@ -148,6 +148,7 @@ module DynamicImage
         else
           hover_correction = 0
         end
+
         words.each do |word|
           draw.fill = config[:color][(count % config[:color].length)]
           draw.annotate(canvas, 0, 0, x_pos, metrics.ascent, word)
@@ -166,10 +167,16 @@ module DynamicImage
         else
           row_correction = 0
         end
+        
+        if config[:toprowcorrection]
+          first_row_correction = config[:toprowcorrection].to_i
+        else
+          first_row_correction = 0
+        end
 
         words.each do |word|
           if count == 0
-            row_corr = 0
+            row_corr = first_row_correction
           else
             row_corr = row_correction
           end
