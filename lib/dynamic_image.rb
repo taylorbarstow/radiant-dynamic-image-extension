@@ -187,15 +187,15 @@ module DynamicImage
       # Generate the image if not using cache
       if not config[:cache] or not File.exists?(image_path)
         tmp = Magick::Image.new(100, 100)
-        metrics = draw.get_type_metrics(tmp, text)
         anim = Magick::ImageList.new
-        ex = Magick::Image.new(metrics.width, metrics.height)
         text_img = Magick::Draw.new
         text_img.gravity = Magick::CenterGravity
         text_img.pointsize = 36
         text_img.font_weight = Magick::BoldWeight
         text_img.font_style = Magick::ItalicStyle
         text_img.stroke = 'transparent'
+        metrics = text_img.get_type_metrics(tmp, text)
+        ex = Magick::Image.new(metrics.width, metrics.height)
         text_img.annotate(ex, 0,0,0,0, text) do
             self.fill = 'transparent'
         end
