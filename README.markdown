@@ -76,3 +76,4 @@ information.
 TODO
 -------
 * Optimize the image generating process, with some fonts the text is croped
+* The font directory should have "#{RAILS_ROOT}" only for run time and not in environment.rb
