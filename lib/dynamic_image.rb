@@ -2,6 +2,7 @@ require 'RMagick'
 require 'digest/md5'
 require 'stringio'
 require 'image_size'
+require 'rvg/rvg'
 
 module DynamicImage
 
@@ -124,8 +125,8 @@ module DynamicImage
         draw.font = config[:font]
         draw.pointsize = config[:size]
         draw.text_antialias(true)
-        draw.font_stretch(Magick::UltraExpandedStretch)
-        draw.font_weight(800)
+#        draw.font_stretch(Magick::UltraExpandedStretch)
+#        draw.font_weight(800)
         # Generate a temporary image for use with metrics and find metrics
         tmp = Magick::Image.new(100, 100)
         metrics = draw.get_type_metrics(tmp, text)
@@ -233,6 +234,16 @@ module DynamicImage
       config[:spacing] ||= Radiant::Config['image.spacing']
       config[:spacing] = config[:spacing].to_f
       config[:color] = (config[:color] || Radiant::Config['image.color']).split(',')
+      if config[:hovercorrection]
+        hover_correction = config[:hovercorrection].to_i
+      else
+        hover_correction = 0
+      end
+      if config[:topcorrection]
+        top_correction = config[:topcorrection].to_i
+      else
+        top_correction = 0
+      end
       cache_path = path
       text = clean_text(text)
       words = text.split(/[\s]/)
@@ -243,32 +254,81 @@ module DynamicImage
         tmp = Magick::Image.new(100, 100)
         anim = Magick::ImageList.new
         text_img = Magick::Draw.new
-        text_img.gravity = Magick::CenterGravity
-        text_img.pointsize = 36
-        text_img.font_weight = Magick::BoldWeight
-        text_img.font_style = Magick::ItalicStyle
-        text_img.stroke = 'transparent'
+        text_img.gravity = Magick::NorthWestGravity
+        text_img.pointsize = config[:size]
+        text_img.font = config[:font]
+        text_img.text_antialias(true)
+        text_img.font_weight = Magick::BoldWeight if config[:bold]
+#        text_img.font_style = Magick::ItalicStyle
+#        text_img.stroke = 'transparent'
         metrics = text_img.get_type_metrics(tmp, text)
-        ex = Magick::Image.new(metrics.width, metrics.height)
-        text_img.annotate(ex, 0,0,0,0, text) do
+        # Generate the image of the appropriate size
+        height = metrics.height
+        height = 2 * (metrics.ascent+(-1*metrics.descent)) if (config[:hovercolor])
+        # Workaround so that every font works
+        width = metrics.width + metrics.max_advance
+        ex = Magick::Image.new(width, height)
+        ex.background_color = '#FFFFFF'
+        text_img.annotate(ex,0,0,0,0+top_correction, text) do
             self.fill = 'transparent'
         end
         anim << ex.copy
         j = 10
+        # fade from transparent to black
         for i in (1..9)
-          text_img.annotate(ex, 0,0,0,0, text) do
+          text_img.annotate(ex, 0,0,0,0+top_correction, text) do
               self.fill = 'gray'+j.to_s+'0'
               j=j-1
           end
+          if config[:hovercolor]
+            text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
+              self.fill = config[:hovercolor]
+            end
+          else
+            text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
+              self.fill = 'black'
+            end
+          end
           anim << ex.copy
         end
-        text_img.annotate(ex, 0,0,0,0, text) do
+        # the black text
+        text_img.annotate(ex, 0,0,0,0+top_correction, text) do
+          self.fill = 'black'
+        end
+        if config[:hovercolor]
+          text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
+            self.fill = config[:hovercolor]
+          end
+        else
+          text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
             self.fill = 'black'
+          end
         end
         anim << ex.copy
+        # fade from black to grey
+        for y in (1..8)
+          text_img.annotate(ex, 0,0,0,0+top_correction, text) do
+              self.fill = 'gray'+y.to_s+'0'
+          end
+          if config[:hovercolor]
+            text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
+              self.fill = config[:hovercolor]
+            end
+          else
+            text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
+              self.fill = 'black'
+            end
+          end
+          anim << ex.copy
+        end
         anim.delay = 20
-        # anim.cur_image.delay = 300
-        anim.iterations = 0
+        if (config[:loop])
+          anim.iterations = 0
+        elseif(config[:iterations])
+          anim.iterations = config[:iterations].to_i
+        else
+          anim.iterations = 1
+        end
         anim.write(image_path)
         # Delete configuration parameters
         [:font, :size, :cache, :background, :spacing, :color, :hovercolor, :menu].each do |param|
