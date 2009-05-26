@@ -258,15 +258,13 @@ module DynamicImage
         text_img.font = config[:font]
         text_img.text_antialias(true)
         text_img.font_weight = Magick::BoldWeight if config[:bold]
-#        text_img.font_style = Magick::ItalicStyle
-#        text_img.stroke = 'transparent'
         metrics = text_img.get_type_metrics(tmp, text)
         # Generate the image of the appropriate size
         height = metrics.height
         height = 2 * (metrics.ascent+(-1*metrics.descent)) if (config[:hovercolor])
         # Workaround so that every font works
         width = metrics.width + metrics.max_advance
-        ex = Magick::Image.new(width, height)
+        ex = Magick::Image.new(width, 20*height)
         ex.color_reset!(config[:background])
         text_img.annotate(ex,0,0,0,0+top_correction, text) do
             self.fill = 'transparent'
@@ -274,55 +272,33 @@ module DynamicImage
         anim << ex.copy
         j = 10
         # fade from transparent to black
-        threshold = 1
         for i in (1..9)
-          text_img.annotate(ex, 0,0,0,0+top_correction, text) do
+          text_img.annotate(ex, 0,0,0,i*height+0+top_correction, text) do
               self.fill = 'gray'+j.to_s+'0'
               j=j-1
           end
-          if config[:hovercolor]
-            text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
-              self.fill = config[:hovercolor]
-            end
-          else
-            text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
-              self.fill = 'black'
-            end
-          end
-          ex.bilevel_channel(threshold*Magick::QuantumRange/100, Magick::AllChannels)
           anim << ex.copy
         end
         # the black text
-        text_img.annotate(ex, 0,0,0,0+top_correction, text) do
+        text_img.annotate(ex, 0,0,0,10*height+0+top_correction, text) do
           self.fill = 'black'
         end
-        if config[:hovercolor]
-          text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
-            self.fill = config[:hovercolor]
-          end
-        else
-          text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
-            self.fill = 'black'
-          end
-        end
-        ex.bilevel_channel(threshold*Magick::QuantumRange/100, Magick::AllChannels)
         anim << ex.copy
         # fade from black to grey
         for y in (1..8)
-          text_img.annotate(ex, 0,0,0,0+top_correction, text) do
+          text_img.annotate(ex, 0,0,0,(10+y)*height+0+top_correction, text) do
               self.fill = 'gray'+y.to_s+'0'
           end
-          if config[:hovercolor]
-            text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
-              self.fill = config[:hovercolor]
-            end
-          else
-            text_img.annotate(ex, 0,0,0,height/2+hover_correction+top_correction, text) do
-              self.fill = 'black'
-            end
-          end
-          ex.bilevel_channel(threshold*Magick::QuantumRange/100, Magick::AllChannels)
           anim << ex.copy
+        end
+        if config[:hovercolor]
+          text_img.annotate(ex, 0,0,0,19*height+hover_correction+top_correction, text) do
+            self.fill = config[:hovercolor]
+          end
+        else
+          text_img.annotate(ex, 0,0,0,19*height+hover_correction+top_correction, text) do
+            self.fill = 'black'
+          end
         end
         anim.delay = 20
         if (config[:loop])
