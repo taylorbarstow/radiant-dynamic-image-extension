@@ -2,7 +2,6 @@ require 'RMagick'
 require 'digest/md5'
 require 'stringio'
 require 'image_size'
-require 'rvg/rvg'
 
 module DynamicImage
 
@@ -268,13 +267,14 @@ module DynamicImage
         # Workaround so that every font works
         width = metrics.width + metrics.max_advance
         ex = Magick::Image.new(width, height)
-        ex.background_color = '#FFFFFF'
+        ex.color_reset!(config[:background])
         text_img.annotate(ex,0,0,0,0+top_correction, text) do
             self.fill = 'transparent'
         end
         anim << ex.copy
         j = 10
         # fade from transparent to black
+        threshold = 1
         for i in (1..9)
           text_img.annotate(ex, 0,0,0,0+top_correction, text) do
               self.fill = 'gray'+j.to_s+'0'
@@ -289,6 +289,7 @@ module DynamicImage
               self.fill = 'black'
             end
           end
+          ex.bilevel_channel(threshold*Magick::QuantumRange/100, Magick::AllChannels)
           anim << ex.copy
         end
         # the black text
@@ -304,6 +305,7 @@ module DynamicImage
             self.fill = 'black'
           end
         end
+        ex.bilevel_channel(threshold*Magick::QuantumRange/100, Magick::AllChannels)
         anim << ex.copy
         # fade from black to grey
         for y in (1..8)
@@ -319,6 +321,7 @@ module DynamicImage
               self.fill = 'black'
             end
           end
+          ex.bilevel_channel(threshold*Magick::QuantumRange/100, Magick::AllChannels)
           anim << ex.copy
         end
         anim.delay = 20
