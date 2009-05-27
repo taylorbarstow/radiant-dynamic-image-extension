@@ -23,9 +23,9 @@ Setup
 3. Create a folder called "dynamic_images" in public and chmod 755 it
 4. Configure default text settings in environment.rb.  Here are some sample settings
 
-`Radiant::Config['image.font'] = "#{RAILS_ROOT}/CenturyGothic-Bold.ttf" # default font path`
+`Radiant::Config['image.font'] = "/CenturyGothic-Bold.ttf" # default font path`
 
-`Radiant::Config['image.font.dir'] = "#{RAILS_ROOT}/public/" # font directory`
+`Radiant::Config['image.font.dir'] = "/public/" # font directory`
 
 `Radiant::Config['image.size'] = 28.0 # default font size`
 
@@ -76,4 +76,3 @@ information.
 TODO
 -------
 * Optimize the image generating process, with some fonts the text is croped
-* The font directory should have "#{RAILS_ROOT}" only for run time and not in environment.rb

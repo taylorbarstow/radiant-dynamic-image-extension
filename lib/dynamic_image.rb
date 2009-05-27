@@ -87,9 +87,9 @@ module DynamicImage
       text.downcase! if config[:downcase]
       text.upcase! if config[:upcase]
       unless(config[:font])
-        config[:font] = Radiant::Config['image.font']
+        config[:font] = RAILS_ROOT+Radiant::Config['image.font']
       else
-         tmp1 = Radiant::Config['image.font.dir']
+         tmp1 = RAILS_ROOT+Radiant::Config['image.font.dir']
          tmp2 = config[:font]
          config[:font] = tmp1 + tmp2
       end
@@ -100,6 +100,11 @@ module DynamicImage
       config[:spacing] ||= Radiant::Config['image.spacing']
       config[:spacing] = config[:spacing].to_f
       config[:color] = (config[:color] || Radiant::Config['image.color']).split(',')
+      if config[:topcorrection]
+        top_correction = config[:topcorrection].to_i
+      else
+        top_correction = 0
+      end
       row = config[:row]
       cache_path = path
       text = clean_text(text)
@@ -151,8 +156,8 @@ module DynamicImage
 
         words.each do |word|
           draw.fill = config[:color][(count % config[:color].length)]
-          draw.annotate(canvas, 0, 0, x_pos, metrics.ascent, word)
-          draw.annotate(canvas,0,0,x_pos,metrics.ascent*2+hover_correction,word) do
+          draw.annotate(canvas, 0, 0, x_pos, metrics.ascent+top_correction, word)
+          draw.annotate(canvas,0,0,x_pos,metrics.ascent*2+hover_correction+top_correction,word) do
             self.fill = config[:hovercolor]
           end if (config[:hovercolor])
           metrics = draw.get_type_metrics(tmp, word)
@@ -181,8 +186,8 @@ module DynamicImage
             row_corr = row_correction
           end
           draw.fill = config[:color][(count % config[:color].length)]
-          draw.annotate(canvas,0,0,0,row_corr+(img_height*row_count), word.rstrip)
-          draw.annotate(canvas,0,0,0,row_corr+(img_height*row_count)+(img_height*row)+hover_correction,word.rstrip) do
+          draw.annotate(canvas,0,0,0,row_corr+(img_height*row_count)+top_correction, word.rstrip)
+          draw.annotate(canvas,0,0,0,row_corr+(img_height*row_count)+(img_height*row)+hover_correction+top_correction,word.rstrip) do
             self.fill = config[:hovercolor]
           end if (config[:hovercolor])
           metrics = draw.get_type_metrics(tmp, word)
