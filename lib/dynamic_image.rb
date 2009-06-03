@@ -225,9 +225,9 @@ module DynamicImage
       text.downcase! if config[:downcase]
       text.upcase! if config[:upcase]
       unless(config[:font])
-        config[:font] = Radiant::Config['image.font']
+        config[:font] = RAILS_ROOT+Radiant::Config['image.font']
       else
-         tmp1 = Radiant::Config['image.font.dir']
+         tmp1 = RAILS_ROOT+Radiant::Config['image.font.dir']
          tmp2 = config[:font]
          config[:font] = tmp1 + tmp2
       end
