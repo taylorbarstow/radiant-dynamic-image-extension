@@ -31,11 +31,13 @@ Setup
 
 `Radiant::Config['image.spacing'] = 5 # Spacing between words in pixels`
 
-`Radiant::Config['image.color'] = '#8FC757,#0093DB' # Colors, if multiple colors are provided each word will be a different color`
+`Radiant::Config['image.color'] = '#8FC757' # Font color
 
 `Radiant::Config['image.cache_path'] = 'public/dynamic_images' # Path to cache the images, don't change this now`
 
 `Radiant::Config['image.background'] = '#0D0D0D' # Background color of the image or 'transparent' for transparent background (may have problems in IE)`
+
+`Radiant::Config['image.image_size'] = '500x300' # Image dimensions; if you specify just width image magick will wrap the text for you`
 
 5. make a rake update
 6. insert `<link href="/stylesheets/extensions/dynamic_image/dynamic_image.css" type="text/css" rel="stylesheet">` into your layout

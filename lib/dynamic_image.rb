@@ -95,11 +95,12 @@ module DynamicImage
       end
       config[:size] ||= Radiant::Config['image.size']
       config[:size] = config[:size].to_f
+      config[:image_size] ||= Radiant::Config['image.image_size']
       config[:cache] ||= true
       config[:background] ||= Radiant::Config['image.background']
       config[:spacing] ||= Radiant::Config['image.spacing']
       config[:spacing] = config[:spacing].to_f
-      config[:color] = (config[:color] || Radiant::Config['image.color']).split(',')
+      config[:color] = config[:color] || Radiant::Config['image.color']
       if config[:topcorrection]
         top_correction = config[:topcorrection].to_i
       else
@@ -121,83 +122,16 @@ module DynamicImage
       image_path = File.join(cache_path, image_name)
       # Generate the image if not using cache
       if not config[:cache] or not File.exists?(image_path)
-        # Generate the image list
-        canvas = Magick::ImageList.new
-        # Generate the draw object with the font parameters
-        draw = Magick::Draw.new
-        draw.stroke = 'transparent'
-        draw.font = config[:font]
-        draw.pointsize = config[:size]
-        draw.text_antialias(true)
-#        draw.font_stretch(Magick::UltraExpandedStretch)
-#        draw.font_weight(800)
-        # Generate a temporary image for use with metrics and find metrics
-        tmp = Magick::Image.new(100, 100)
-        metrics = draw.get_type_metrics(tmp, text)
-        # Generate the image of the appropriate size
-        height = metrics.height
-        height = 2 * metrics.ascent if (config[:hovercolor])
-        height = height * (row+1) if row
-        # Workaround so that every font works
-        width = metrics.width + metrics.max_advance
-
-        canvas.new_image(width, height) do
+        img = Magick::Image.read("caption:#{text}") do
+          self.antialias = true
           self.background_color = config[:background]
+          self.fill = config[:color]
+          self.pointsize = config[:size]
+          self.stroke = 'transparent'     # ? was in original code
+          self.font = config[:font]       # required
+          self.size = config[:image_size]       # required
         end
-        
-        # Iterate over each of the words and generate the appropriate annotation
-        # Alternate colors for each word
-        x_pos, count = 0, 0
-        if config[:hovercorrection]
-          hover_correction = config[:hovercorrection].to_i
-        else
-          hover_correction = 0
-        end
-
-        words.each do |word|
-          draw.fill = config[:color][(count % config[:color].length)]
-          draw.annotate(canvas, 0, 0, x_pos, metrics.ascent+top_correction, word)
-          draw.annotate(canvas,0,0,x_pos,metrics.ascent*2+hover_correction+top_correction,word) do
-            self.fill = config[:hovercolor]
-          end if (config[:hovercolor])
-          metrics = draw.get_type_metrics(tmp, word)
-          x_pos += metrics.width + config[:spacing]
-          count += 1;
-        end unless row
-
-        img_height = metrics.ascent+(-1*metrics.descent) if row
-        row_count = 1 if row
-        if config[:row] and config[:rowcorrection]
-          row_correction = config[:rowcorrection].to_i
-        else
-          row_correction = 0
-        end
-        
-        if config[:toprowcorrection]
-          first_row_correction = config[:toprowcorrection].to_i
-        else
-          first_row_correction = 0
-        end
-
-        words.each do |word|
-          if count == 0
-            row_corr = first_row_correction
-          else
-            row_corr = row_correction
-          end
-          draw.fill = config[:color][(count % config[:color].length)]
-          draw.annotate(canvas,0,0,0,row_corr+(img_height*row_count)+top_correction, word.rstrip)
-          draw.annotate(canvas,0,0,0,row_corr+(img_height*row_count)+(img_height*row)+hover_correction+top_correction,word.rstrip) do
-            self.fill = config[:hovercolor]
-          end if (config[:hovercolor])
-          metrics = draw.get_type_metrics(tmp, word)
-          # x_pos += metrics.width + config[:spacing]
-          count += 1;
-          row_count += 1;
-        end if row
-
-        # Write the file
-        canvas.write(image_path)
+        img[0].write(image_path)
       end
       # Delete configuration parameters
       [:font, :size, :cache, :background, :spacing, :color, :hovercolor, :menu].each do |param|
@@ -213,10 +147,11 @@ module DynamicImage
         config[:size].to_s +
         config[:background].to_s +
         config[:spacing].to_s +
-        config[:color].join +
+        config[:color].to_s +
         config[:hovercolor].to_s +
         config[:menu].to_s +
         config[:style].to_s +
+        config[:image_size].to_s +
         config.to_s
       )
     end
